@@ -840,7 +840,7 @@ void setListStats(hwc_context_t *ctx,
     ctx->dpyAttr[dpy].mActionSafePresent = isActionSafePresent(ctx, dpy);
     ctx->listStats[dpy].secureRGBCount = 0;
 
-    ctx->listStats[dpy].mAIVVideoMode = false;
+    ctx->mAIVVideoMode[dpy] = false;
     resetROI(ctx, dpy);
 
     trimList(ctx, list, dpy);
@@ -850,10 +850,8 @@ void setListStats(hwc_context_t *ctx,
         private_handle_t *hnd = (private_handle_t *)layer->handle;
 
 #ifdef QCOM_BSP
-        // Window boxing feature is applicable obly for external display, So
-        // enable mAIVVideoMode only for external display
         if(ctx->mWindowboxFeature && dpy && isAIVVideoLayer(layer)) {
-            ctx->listStats[dpy].mAIVVideoMode = true;
+            ctx->mAIVVideoMode[dpy] = true;
         }
         if (layer->flags & HWC_SCREENSHOT_ANIMATOR_LAYER) {
             ctx->listStats[dpy].isDisplayAnimating = true;
@@ -1659,14 +1657,9 @@ void updateDestAIVVideoMode(hwc_context_t *ctx, hwc_rect_t crop,
     int extW = ctx->dpyAttr[dpy].xres;
     int extH = ctx->dpyAttr[dpy].yres;
     // Set the destination coordinates of external display to full screen,
-    // when zoom in mode is enabled or the ratio between video aspect ratio
-    // and external display aspect ratio is below the tolerance level
-    float bufferAspectRatio = ((float)srcCrop.w / (float)srcCrop.h);
-    float extDisplayAspectRatio = ((float)extW / (float)extH);
-    float toleranceLevel = bufferAspectRatio / extDisplayAspectRatio;
-    if(((toleranceLevel >= ctx->mMinToleranceLevel) &&
-        (toleranceLevel <= ctx->mMaxToleranceLevel)) ||
-        (isZoomModeEnabled(crop))) {
+    // when zoom in mode is enabled or video aspect ratio matches with the
+    // external display aspect ratio
+    if((srcCrop.w * extH == extW * srcCrop.h) || (isZoomModeEnabled(crop))) {
         dst.left = 0;
         dst.top = 0;
         dst.right = extW;
@@ -1678,7 +1671,7 @@ void updateDestAIVVideoMode(hwc_context_t *ctx, hwc_rect_t crop,
              crop.left, crop.top, crop.right, crop.bottom);
 }
 
-void updateCoordinates(hwc_context_t *ctx, hwc_rect_t& crop,
+void updateExtDisplayCoordinates(hwc_context_t *ctx, hwc_rect_t& crop,
                            hwc_rect_t& dst, int dpy) {
     updateCropAIVVideoMode(ctx, crop, dpy);
     updateDestAIVVideoMode(ctx, crop, dst, dpy);
@@ -1718,8 +1711,8 @@ int configureNonSplit(hwc_context_t *ctx, hwc_layer_1_t *layer,
             whf.format = getMdpFormat(HAL_PIXEL_FORMAT_BGRX_8888);
     }
     // update source crop and destination position of AIV video layer.
-    if(ctx->listStats[dpy].mAIVVideoMode && isYuvBuffer(hnd)) {
-        updateCoordinates(ctx, crop, dst, dpy);
+    if(ctx->mAIVVideoMode[dpy] && isYuvBuffer(hnd)) {
+        updateExtDisplayCoordinates(ctx, crop, dst, dpy);
     }
     calcExtDisplayPosition(ctx, hnd, dpy, crop, dst, transform, orient);
 
@@ -1830,8 +1823,8 @@ int configureSplit(hwc_context_t *ctx, hwc_layer_1_t *layer,
     }
 
     // update source crop and destination position of AIV video layer.
-    if(ctx->listStats[dpy].mAIVVideoMode && isYuvBuffer(hnd)) {
-        updateCoordinates(ctx, crop, dst, dpy);
+    if(ctx->mAIVVideoMode[dpy] && isYuvBuffer(hnd)) {
+        updateExtDisplayCoordinates(ctx, crop, dst, dpy);
     }
 
     /* Calculate the external display position based on MDP downscale,
@@ -1977,8 +1970,8 @@ int configureSourceSplit(hwc_context_t *ctx, hwc_layer_1_t *layer,
             getMdpFormat(hnd->format), (uint32_t)hnd->size);
 
     // update source crop and destination position of AIV video layer.
-    if(ctx->listStats[dpy].mAIVVideoMode && isYuvBuffer(hnd)) {
-        updateCoordinates(ctx, crop, dst, dpy);
+    if(ctx->mAIVVideoMode[dpy] && isYuvBuffer(hnd)) {
+        updateExtDisplayCoordinates(ctx, crop, dst, dpy);
     }
 
     /* Calculate the external display position based on MDP downscale,

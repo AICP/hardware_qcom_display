@@ -351,7 +351,7 @@ void updateSource(ovutils::eTransform& orient, ovutils::Whf& whf,
 bool isZoomModeEnabled(hwc_rect_t crop);
 void updateCropAIVVideoMode(hwc_context_t *ctx, hwc_rect_t& crop, int dpy);
 void updateDestAIVVideoMode(hwc_context_t *ctx, hwc_rect_t& dst, int dpy);
-void updateCoordinates(hwc_context_t *ctx, hwc_rect_t& crop,
+void updateExtDisplayCoordinates(hwc_context_t *ctx, hwc_rect_t& crop,
                            hwc_rect_t& dst, int dpy);
 
 //Routine to configure low resolution panels (<= 2048 width)
@@ -592,8 +592,6 @@ struct hwc_context_t {
     // Flags related to windowboxing feature
     bool mAIVVideoMode[HWC_NUM_DISPLAY_TYPES];
     bool mWindowboxFeature;
-    float mMinToleranceLevel;
-    float mMaxToleranceLevel;
 };
 
 namespace qhwc {
