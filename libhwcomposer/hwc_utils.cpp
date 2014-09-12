@@ -1659,9 +1659,14 @@ void updateDestAIVVideoMode(hwc_context_t *ctx, hwc_rect_t crop,
     int extW = ctx->dpyAttr[dpy].xres;
     int extH = ctx->dpyAttr[dpy].yres;
     // Set the destination coordinates of external display to full screen,
-    // when zoom in mode is enabled or video aspect ratio matches with the
-    // external display aspect ratio
-    if((srcCrop.w * extH == extW * srcCrop.h) || (isZoomModeEnabled(crop))) {
+    // when zoom in mode is enabled or the ratio between video aspect ratio
+    // and external display aspect ratio is below the tolerance level
+    float bufferAspectRatio = ((float)srcCrop.w / (float)srcCrop.h);
+    float extDisplayAspectRatio = ((float)extW / (float)extH);
+    float toleranceLevel = bufferAspectRatio / extDisplayAspectRatio;
+    if(((toleranceLevel >= ctx->mMinToleranceLevel) &&
+        (toleranceLevel <= ctx->mMaxToleranceLevel)) ||
+        (isZoomModeEnabled(crop))) {
         dst.left = 0;
         dst.top = 0;
         dst.right = extW;
